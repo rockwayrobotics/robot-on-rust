@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 wpilib = "0.4.0"
 wpilib-sys = "0.4.0"
+ctre = { git = "https://github.com/first-rust-competition/ctre-rs" }
