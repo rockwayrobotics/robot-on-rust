@@ -1,16 +1,23 @@
 extern crate wpilib;
 
 mod wpilibfill;
-use wpilibfill::*;
+mod constants;
+mod drivebase;
 
+use wpilibfill::*;
 use wpilib::ds::DriverStation;
+use drivebase::Drivebase;
 
 #[derive(Debug)]
-struct Robot {}
+struct Robot {
+    drivebase: Drivebase,
+}
 
 impl robot::IterativeRobot for Robot {
     fn new(_ds: &DriverStation) -> Robot {
-        Robot {}
+        Robot {
+            drivebase: Drivebase::new(),
+        }
     }
 
     fn disabled_init(&mut self) {
@@ -37,7 +44,9 @@ impl robot::IterativeRobot for Robot {
 
     fn test_periodic(&mut self) {}
 
-    fn robot_periodic(&mut self) {}
+    fn robot_periodic(&mut self) {
+        self.drivebase.feed_motors();
+    }
 }
 
 fn main() {
