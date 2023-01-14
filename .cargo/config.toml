@@ -1,0 +1,12 @@
+[target.arm-unknown-linux-gnueabi]
+# https://github.com/wpilibsuite/opensdk
+linker = "tools/roborio-academic/bin/arm-frc2023-linux-gnueabi-gcc"
+rustflags = [
+  "-C", "target-cpu=cortex-a9",
+]
+
+[build]
+target = "arm-unknown-linux-gnueabi"
+
+[env]
+LIBCLANG_PATH = { value = "tools", relative = true }
