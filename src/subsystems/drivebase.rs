@@ -10,40 +10,76 @@ pub struct Drivebase {
 }
 
 impl Drivebase {
-    pub fn new(base: ArfurRobot, left_front_can: i32, left_back_can: i32, right_front_can: i32, right_back_can: i32) -> Self {
+    pub fn new(
+        proof_of_initialization: ArfurRobot,
+        left_front_can: i32,
+        left_back_can: i32,
+        right_front_can: i32,
+        right_back_can: i32,
+    ) -> Self {
         Self {
-            left_front: SparkMax::new(base, left_front_can),
-            left_back: SparkMax::new(base, left_back_can),
-            right_front: SparkMax::new(base, right_front_can),
-            right_back: SparkMax::new(base, right_back_can),
+            left_front: SparkMax::new(proof_of_initialization, left_front_can),
+            left_back: SparkMax::new(proof_of_initialization, left_back_can),
+            right_front: SparkMax::new(proof_of_initialization, right_front_can),
+            right_back: SparkMax::new(proof_of_initialization, right_back_can),
         }
     }
 }
 
+// TODO: this should probably be on SparkMax instead
+unsafe impl Send for Drivebase {}
+
+pub struct MotorSpeed(f64);
+
+impl MotorSpeed {
+    /// Creates a motor speed without checking if the input is between -1 and 1 inclusive.
+    /// This may lead to motor burn-out if the value is outside this range.
+    /// # Safety
+    /// The value must be within the range `[-1.0, 1.0]`.
+    pub unsafe fn new_unchecked(speed: f64) -> Self {
+        Self(speed)
+    }
+
+    /// Creates a motor speed if the given value is between -1 and 1 inclusive.
+    pub fn new(speed: f64) -> Option<Self> {
+        if (-1.0..=1.0).contains(&speed) {
+            Some(Self(speed))
+        } else {
+            None
+        }
+    }
+
+    /// Creates a motor speed, clamping the input to `[-1.0, 1.0]`.
+    /// ```rust
+    /// let too_high = MotorSpeed::new_clamped(2.0);
+    /// assert_eq!(too_high.get(), 1.0);
+    /// let too_low = MotorSpeed::new_clamped(-2.0);
+    /// assert_eq!(too_low.get(), -1.0);
+    /// let in_range = MotorSpeed::new_clamped(-0.5);
+    /// assert_eq!(in_range.get(), -0.5);
+    /// ```
+    pub fn new_clamped(speed: f64) -> Self {
+        Self(speed.clamp(-1.0, 1.0))
+    }
+
+    /// Returns the value as a primitive type.
+    pub fn get(&self) -> f64 {
+        self.0
+    }
+}
+
 pub trait DifferentialDrivebase {
-    unsafe fn set_left_unchecked(&mut self, left: f64);
-    unsafe fn set_right_unchecked(&mut self, right: f64);
+    fn set_left(&mut self, left: MotorSpeed);
+    fn set_right(&mut self, right: MotorSpeed);
 
-    fn set_left(&mut self, left: f64) {
-        unsafe {
-            self.set_left_unchecked(left.clamp(-1.0, 1.0));
-        }
+    fn tank_drive(&mut self, left: MotorSpeed, right: MotorSpeed) {
+        self.set_left(left);
+        self.set_right(right);
     }
 
-    fn set_right(&mut self, right: f64) {
-        unsafe {
-            self.set_right_unchecked(right.clamp(-1.0, 1.0));
-        }
-    }
-
-    fn tank_drive(&mut self, left: f64, right: f64) {
-        self.set_left(left.clamp(-1.0, 1.0));
-        self.set_right(right.clamp(-1.0, 1.0));
-    }
-
-    fn arcade_drive(&mut self, y: f64, x: f64) {
-        let y = y.clamp(-1.0, 1.0);
-        let x = x.clamp(-1.0, 1.0);
+    fn arcade_drive(&mut self, y: MotorSpeed, x: MotorSpeed) {
+        let y = y.get();
+        let x = x.get();
         let max_input = y.abs().max(x.abs());
         let min_input = y.abs().min(x.abs());
 
@@ -56,19 +92,19 @@ pub trait DifferentialDrivebase {
             (left, right)
         };
 
-        self.set_left(left);
-        self.set_right(right);
+        self.set_left(MotorSpeed::new_clamped(left));
+        self.set_right(MotorSpeed::new_clamped(right));
     }
 }
 
 impl DifferentialDrivebase for Drivebase {
-    unsafe fn set_left_unchecked(&mut self, left: f64) {
-        self.left_front.set_percentage(left);
-        self.left_back.set_percentage(left);
+    fn set_left(&mut self, left: MotorSpeed) {
+        self.left_front.set_percentage(left.get());
+        self.left_back.set_percentage(left.get());
     }
 
-    unsafe fn set_right_unchecked(&mut self, right: f64) {
-        self.right_front.set_percentage(right);
-        self.right_back.set_percentage(right);
+    fn set_right(&mut self, right: MotorSpeed) {
+        self.right_front.set_percentage(right.get());
+        self.right_back.set_percentage(right.get());
     }
 }

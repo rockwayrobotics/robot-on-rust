@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 arfur = { git = "https://github.com/arfur-rs/arfur" }
+async-trait = "0.1.67"
+tokio = { version = "1.24.2", features = ["macros", "rt-multi-thread", "sync"] }
